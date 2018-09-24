@@ -1,0 +1,6 @@
+pystan
+numpy
+pandas
+scipy
+scikit-learn
+python-dateutil
