@@ -9,14 +9,20 @@ from sklearn.preprocessing import LabelEncoder
 from dateutil.relativedelta import relativedelta
 
 
-class SurfaceBayesPredictor(object):
+class BayesPointModel(object):
 
-    def __init__(self, start_date, dataset, period_length=3, use_cache=True):
+    def __init__(self, start_date, dataset, period_length=3, use_cache=True,
+                 store_posterior_dir=None):
 
         self.period_length = period_length
         self.start_date = start_date
         self.dataset = dataset
         self.reduced_data = self.reduce_to_relevant_data(self.dataset)
+        self.store_posterior_dir = store_posterior_dir
+
+        if (self.store_posterior_dir is not None and not
+            os.path.isdir(self.store_posterior_dir)):
+                os.makedirs(self.store_posterior_dir)
 
         model_name = 'stan_model'
         pickle_name = model_name + '.pkl'
@@ -241,7 +247,7 @@ class SurfaceBayesPredictor(object):
 
         # Store all other posteriors in DataFrame
         other_quantities = set(posteriors.keys()) - set(
-            ['r', 's', 't', 'surf', 'log_lik'])
+            ['r', 's', 't', 'surf'])
 
         other_quantities = [x for x in other_quantities if 'eta'
                             not in x and 'prediction' not in x]
@@ -309,8 +315,8 @@ class SurfaceBayesPredictor(object):
                          'match_period': cur_period,
                          'fit_start': self.start_date,
                          'fit_every': self.period_length,
-                         'spw_stds': {match.p1: p1_spw_dist.std(),
-                                      match.p2: p2_spw_dist.std()},
+                         'spw_stds': {p1: p1_spw_dist.std(),
+                                      p2: p2_spw_dist.std()},
                          'p1_win_prob_std': uncertainty,
                          'p1_unknown': p1_id is None,
                          'p2_unknown': p2_id is None,

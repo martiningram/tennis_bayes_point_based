@@ -1,7 +1,4 @@
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')
-from scipy.optimize import minimize
 
 
 def hold_serve_prob(rally_win_prob):
@@ -202,74 +199,6 @@ def prob_win_match_a(win_serve_rally_prob_a, win_serve_rally_prob_b,
                   pow(prob_b_win_set, 2))
 
     return total
-
-
-def calculate_set_probabilities(p1_rally_prob, p1_rally_sigma, p2_rally_prob,
-                                p2_rally_sigma, samples=5000):
-
-    spw_1_samples = np.random.normal(p1_rally_prob, p1_rally_sigma, samples)
-    spw_2_samples = np.random.normal(p2_rally_prob, p2_rally_sigma, samples)
-
-    probabilities = np.zeros((samples, 7))
-    prob_reach_tiebreak = np.zeros(samples)
-
-    scores = [(6, 0), (6, 1), (6, 2), (6, 3), (6, 4), (7, 5), (7, 6)]
-
-    for i, (spw_1, spw_2) in enumerate(zip(spw_1_samples, spw_2_samples)):
-
-        hold_serve_prob_1 = hold_serve_prob(spw_1)
-        hold_serve_prob_2 = hold_serve_prob(spw_2)
-
-        prob_reach_tiebreak[i] = prob_reach_set_score(6, 6, hold_serve_prob_1,
-                                                      hold_serve_prob_2)
-
-        for no, (g1, g2) in enumerate(scores):
-
-            if (g2 <= 4):
-                probabilities[i, no] = prob_reach_set_score(
-                    g1, g2, hold_serve_prob_1, hold_serve_prob_2)
-            elif (g2 == 5):
-                probabilities[i, no] = (prob_reach_set_score(6, 5,
-                                                             hold_serve_prob_1,
-                                                             hold_serve_prob_2)
-                                        * (1 - hold_serve_prob_2))
-            elif (g2 == 6):
-                probabilities[i, no] = (prob_reach_set_score(6, 6,
-                                                             hold_serve_prob_1,
-                                                             hold_serve_prob_2)
-                                        * prob_win_tiebreak_a(spw_1, spw_2))
-
-    set_scores = np.average(probabilities, 0)
-    prob_reach_tiebreak = np.average(prob_reach_tiebreak)
-
-    prob_a_win_set = np.sum(set_scores)
-
-    print("Prob of A winning set is: " + str(prob_a_win_set))
-
-    straight_set_win = pow(prob_a_win_set, 3)
-    four_set_win = 3 * pow(prob_a_win_set, 3) * (1 - prob_a_win_set)
-    five_set_win = 6 * pow(prob_a_win_set, 3) * (1 - prob_a_win_set)**2
-    win = straight_set_win + four_set_win + five_set_win
-
-    print("Straight set win: " + str(straight_set_win))
-    print("Four set win: " + str(four_set_win))
-    print("Five set win: " + str(five_set_win))
-    print("Overall: " + str(win))
-
-    set_scores = {score: probability for score, probability in
-                  zip(scores, set_scores)}
-
-    return [set_scores, prob_reach_tiebreak, straight_set_win,
-            four_set_win, five_set_win, win]
-
-
-def solve_test():
-
-    cons = ({'type': 'ineq', 'fun': lambda x: x[0]},
-            {'type': 'ineq', 'fun': lambda x: -x[0] + 1})
-
-    print(minimize(lambda x: abs(prob_win_match_a(0.59, x) - 0.6), [0.5],
-                   constraints=cons))
 
 
 if __name__ == '__main__':

@@ -80,16 +80,6 @@ generated quantities {
     real surface_prior;
     vector[num_players] prediction_s;
     vector[num_players] prediction_r;
-    vector[num_matches] log_lik;
-    real cur_logit;
-
-    // Log likelihood and logits
-    for (i in 1:num_matches){
-        cur_logit = s[period[i], s_id[i]] - r[period[i], r_id[i]] +
-                    surf[surface[i], s_id[i]] - surf[surface[i], r_id[i]] +
-                    t[tournament[i]] + intercept;
-        log_lik[i] = binomial_logit_lpmf(spw[i] | spt[i], cur_logit);
-    }
 
     // Tournament, serve, return and surface priors
     tournament_prior = normal_rng(0, sigma_t);
