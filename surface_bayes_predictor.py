@@ -3,28 +3,24 @@ import pystan
 import numpy as np
 import pandas as pd
 import cPickle as pkl
-from dateutil.relativedelta import relativedelta
 from scipy.special import expit
-from tpr.iid.winning_prob import prob_win_match_a
+from winning_prob import prob_win_match_a
 from sklearn.preprocessing import LabelEncoder
-from tpr.models.predicted_match import PredictedMatch
-from tpr.models.match_predictor import MatchPredictor, CannotCalculateException
+from dateutil.relativedelta import relativedelta
 
 
-class SurfaceBayesPredictor(MatchPredictor):
+class SurfaceBayesPredictor(object):
 
-    def __init__(self, dataset, start_date, period_length=3, use_cache=True,
-                 store_posterior_dir=None, quick_test_run=False):
-
-        super(SurfaceBayesPredictor, self).__init__(dataset)
+    def __init__(self, start_date, dataset, period_length=3, use_cache=True):
 
         self.period_length = period_length
         self.start_date = start_date
-        self.reduced_data = self.reduce_to_relevant_data(dataset.full_df)
-        self.store_posterior_dir = store_posterior_dir
-        self.quick_test_run = quick_test_run
+        self.dataset = dataset
+        self.reduced_data = self.reduce_to_relevant_data(self.dataset)
 
-        pickle_name = 'tpr/models/stan_models/surface_non_centred.pkl'
+        model_name = 'stan_model'
+        pickle_name = model_name + '.pkl'
+        stan_file_name = model_name + '.stan'
 
         if os.path.isfile(pickle_name) and use_cache:
 
@@ -32,12 +28,8 @@ class SurfaceBayesPredictor(MatchPredictor):
 
         else:
 
-            assert(os.path.isfile(
-                'tpr/models/stan_models/surface_non_centred.stan'))
-
-            self.model = pystan.StanModel(
-                file='tpr/models/stan_models/surface_non_centred.stan')
-
+            assert(os.path.isfile(stan_file_name))
+            self.model = pystan.StanModel(file=stan_file_name)
             pkl.dump(self.model, open(pickle_name, 'wb'))
 
         # This will be a dict mapping period --> predictions
@@ -58,11 +50,8 @@ class SurfaceBayesPredictor(MatchPredictor):
 
     def calculate_period(self, date):
         # This function expects datetime.date objects
-        # TODO: Replace this with the Glicko period calculation to avoid
-        # duplication
 
         months_since = self.diff_month(date, self.start_date)
-
         return months_since // self.period_length + 1
 
     def period_to_date(self, period):
@@ -155,11 +144,7 @@ class SurfaceBayesPredictor(MatchPredictor):
                       'num_tournaments': len(tournament_encoder.classes_)}
 
         print('Sampling from the posterior...')
-        if self.quick_test_run:
-            posteriors = self.model.sampling(data=model_data, iter=100,
-                                             chains=1, algorithm='HMC', warmup=0)
-        else:
-            posteriors = self.model.sampling(data=model_data)
+        posteriors = self.model.sampling(data=model_data)
 
         model_info = str(posteriors)
 
@@ -284,9 +269,10 @@ class SurfaceBayesPredictor(MatchPredictor):
 
         return model_summary
 
-    def predict_match(self, match):
+    def predict_match(self, p1, p2, tournament, surface, match_date,
+                      is_best_of_five):
 
-        cur_date = match.date
+        cur_date = match_date
         cur_period = self.calculate_period(cur_date)
         assert(cur_period > 1)
 
@@ -305,18 +291,17 @@ class SurfaceBayesPredictor(MatchPredictor):
         tournament_encoder = model_results['tournament_encoder']
         posteriors = model_results['posteriors']
 
-        p1_id = self.transform_if_present(match.p1, player_encoder)
-        p2_id = self.transform_if_present(match.p2, player_encoder)
-        surface_id = self.transform_if_present(match.surface, surface_encoder)
-        tournament_id = self.transform_if_present(
-            match.tournament_name, tournament_encoder)
+        p1_id = self.transform_if_present(p1, player_encoder)
+        p2_id = self.transform_if_present(p2, player_encoder)
+        surface_id = self.transform_if_present(surface, surface_encoder)
+        tournament_id = self.transform_if_present(tournament,
+                                                  tournament_encoder)
 
         p1_spw_dist, p2_spw_dist = self.calculate_spw_dist(
             p1_id, p2_id, surface_id, tournament_id, posteriors)
 
-        # TODO: Make 100% sure this is right
         results = prob_win_match_a(p1_spw_dist, p2_spw_dist,
-                                   best_of_five=match.bo5)
+                                   best_of_five=is_best_of_five)
 
         uncertainty = np.std(results)
 
@@ -334,14 +319,12 @@ class SurfaceBayesPredictor(MatchPredictor):
 
         p1_win_prob = np.mean(results)
 
-        predicted_match = PredictedMatch.from_match(
-            match, win_probs={match.p1: p1_win_prob,
-                              match.p2: 1 - p1_win_prob},
-            spw_predictions={match.p1: p1_spw_dist.mean(),
-                             match.p2: p2_spw_dist.mean()},
-            model_details=model_details)
+        win_probs = {p1: p1_win_prob, p2: 1 - p1_win_prob}
+        spw_dists = {p1: p1_spw_dist, p2: p2_spw_dist}
 
-        return predicted_match
+        return {'win_probabilities': win_probs,
+                'serve_probabilities': spw_dists,
+                'model_details': model_details}
 
     def reduce_to_relevant_data(self, full_df):
 
