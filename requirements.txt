@@ -1,5 +1,6 @@
 pystan
 numpy
+cython
 pandas
 scipy
 scikit-learn

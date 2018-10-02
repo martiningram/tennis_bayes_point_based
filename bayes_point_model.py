@@ -13,6 +13,20 @@ class BayesPointModel(object):
 
     def __init__(self, start_date, dataset, period_length=3, use_cache=True,
                  store_posterior_dir=None):
+        """Instantiates a new BayesPointModel.
+
+        Args:
+            start_date (datetime.datetime): The date to start the model fit.
+            dataset (pd.DataFrame): The DataFrame containing data to use
+                for model fitting.
+            period_length (int): The number of months in a period.
+            use_cache (Bool): Whether or not to cache model fits. If True,
+                the model will check whether it has predicted a period before
+                and use that fit for prediction.
+            store_posterior_dir (Optional[str]): If specified, designates the
+                folder where posterior fits are stored. The directory is
+                created if it does not exist.
+        """
 
         self.period_length = period_length
         self.start_date = start_date
@@ -43,6 +57,8 @@ class BayesPointModel(object):
 
     @staticmethod
     def transform_if_present(class_name, encoder):
+        """A helper function which transforms a class name to its integer if
+        present, and returns None if otherwise."""
         if class_name in encoder.classes_:
             return encoder.transform([class_name])[0]
         else:
@@ -50,17 +66,19 @@ class BayesPointModel(object):
 
     @staticmethod
     def diff_month(d1, d2):
+        """Calculates the difference in months between two dates."""
         # Credit to:
         # https://stackoverflow.com/questions/4039879/best-way-to-find-the-months-between-two-dates
         return (d1.year - d2.year) * 12 + d1.month - d2.month
 
     def calculate_period(self, date):
-        # This function expects datetime.date objects
+        """Calculates the period number the given date falls in."""
 
         months_since = self.diff_month(date, self.start_date)
         return months_since // self.period_length + 1
 
     def period_to_date(self, period):
+        """Given a period [integer], returns the date that period starts at."""
 
         return self.start_date + relativedelta(
             months=self.period_length * (period - 1))
@@ -68,8 +86,21 @@ class BayesPointModel(object):
     @staticmethod
     def calculate_spw_dist(p1_id, p2_id, surface_id, tournament_id,
                            posteriors):
-        # Assume posteriors has no more time dependence, but has only one
-        # column corresponding to the current epoch
+        """Calculates the posterior over the probability of winning a point
+        on serve for both players.
+
+        Args:
+            p1_id (int): Player 1's integer ID.
+            p2_id (int): Player 2's integer ID.
+            surface_id (int): The surface's integer ID.
+            tournament_id (int): The tournament's integer ID.
+            posteriors (Dict[str -> np.array]): A dictionary containing
+                the posteriors fit by the model for a period.
+
+        Returns:
+            Tuple[np.array, np.array]: Posterior samples of the probabilities
+            of winning points on serve, on the logit scale.
+        """
 
         p1_serve_skill = (posteriors['prior_s'] if p1_id is None else
                           posteriors['s'][:, p1_id])
@@ -104,6 +135,15 @@ class BayesPointModel(object):
         return p1_spw, p2_spw
 
     def fit_model(self, fit_period):
+        """Fits the model.
+
+        Args:
+            fit_period (integer): The period to fit the model.
+
+        Returns:
+            Dict: A dictionary containing the fit results for the period.
+
+        """
 
         # Subset the data
         relevant_data = self.reduced_data[self.reduced_data['period'] <
@@ -197,6 +237,8 @@ class BayesPointModel(object):
 
     def summarise_posteriors(self, posteriors, player_encoder, surface_encoder,
                              tournament_encoder):
+        """A helper function summarising the posteriors obtained by the model
+        fit."""
 
         # Store return skills
         # Target: a dictionary mapping date to a df with columns of players and
@@ -277,6 +319,27 @@ class BayesPointModel(object):
 
     def predict_match(self, p1, p2, tournament, surface, match_date,
                       is_best_of_five):
+        """Predicts a tennis match.
+
+        Args:
+            p1 (str): Name of player 1.
+            p2 (str): Name of player 2.
+            tournament (str): The tournament at which the match is held, e.g.
+                'FO - RG' for the French Open.
+            surface (str): The surface the match is to be held on, e.g. 'clay'.
+            match_date (datetime.datetime): The date the match is to be played
+                on.
+            is_best_of_five (Bool): Whether or not the match is played in
+                best-of-five sets format. If False, it is assumed to be
+                best-of-three sets.
+
+        Returns:
+            Dict: A dictionary of predictions, containing three keys.
+            'win_probabilities' contains the win probabilities for each player;
+            'serve_probabilities' contains the posteriors for the probabilities
+            of winning a point on serve;
+            'model_details' lists additional information about the model fit.
+        """
 
         cur_date = match_date
         cur_period = self.calculate_period(cur_date)
@@ -333,6 +396,8 @@ class BayesPointModel(object):
                 'model_details': model_details}
 
     def reduce_to_relevant_data(self, full_df):
+        """A helper function to subset the dataset to only the part required by
+        the model."""
 
         # Subset full df to relevant date range
         full_df = full_df[full_df['start_date'] > self.start_date]
