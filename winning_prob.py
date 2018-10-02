@@ -2,6 +2,14 @@ import numpy as np
 
 
 def hold_serve_prob(rally_win_prob):
+    """Calculates the probability of holding serve.
+
+    Args:
+        rally_win_prob (np.array): The probability of winning a rally on serve.
+
+    Returns:
+        np.array: The probability of holding serve.
+    """
 
     rally_lose_prob = 1 - rally_win_prob
 
@@ -23,6 +31,19 @@ def hold_serve_prob(rally_win_prob):
 
 def prob_reach_tiebreak_score(i, j, win_serve_rally_prob_a,
                               win_serve_rally_prob_b):
+    """The probability of reaching a given tiebreak score.
+
+    Args:
+        i (int): Score for player a.
+        j (int): Score for player b.
+        win_serve_rally_prob_a (np.array): The probability that a wins a rally
+            on their serve.
+        win_serve_rally_prob_b (np.array): The probability that b wins a rally
+            on their serve.
+
+    Returns:
+        np.array: The probability of reaching tiebreak score [i, j].
+    """
 
     # Helpful renamings
 
@@ -77,6 +98,17 @@ def prob_reach_tiebreak_score(i, j, win_serve_rally_prob_a,
 
 
 def prob_win_tiebreak_a(win_serve_rally_prob_a, win_serve_rally_prob_b):
+    """Calculates the probability that a wins a tiebreak.
+
+    Args:
+        win_serve_rally_prob_a (np.array): The probability that player a wins
+            a rally on their own serve.
+        win_serve_rally_prob_b (np.array): The probability that player b wins
+            a rally on their own serve.
+
+    Returns:
+        np.array: The probability a wins the tiebreak.
+    """
 
     total = 0
     lose_serve_rally_prob_a = 1 - win_serve_rally_prob_a
@@ -97,6 +129,17 @@ def prob_win_tiebreak_a(win_serve_rally_prob_a, win_serve_rally_prob_b):
 
 
 def prob_win_set_a(win_serve_rally_prob_a, win_serve_rally_prob_b):
+    """Calculates the probability that player a wins a set.
+
+    Args:
+        win_serve_rally_prob_a (np.array): The probability that player a wins
+            a rally on their own serve.
+        win_serve_rally_prob_b (np.array): The probability that player b wins
+            a rally on their own serve.
+
+    Returns:
+        np.array: The probability that player a wins a set.
+    """
 
     hold_serve_prob_a = hold_serve_prob(win_serve_rally_prob_a)
     hold_serve_prob_b = hold_serve_prob(win_serve_rally_prob_b)
@@ -121,6 +164,19 @@ def prob_win_set_a(win_serve_rally_prob_a, win_serve_rally_prob_b):
 
 
 def prob_reach_set_score(i, j, hold_serve_prob_a, hold_serve_prob_b):
+    """The probability of reaching a given set score.
+
+    Args:
+        i (int): Score for player a.
+        j (int): Score for player b.
+        win_serve_rally_prob_a (np.array): The probability that a wins a rally
+            on their serve.
+        win_serve_rally_prob_b (np.array): The probability that b wins a rally
+            on their serve.
+
+    Returns:
+        np.array: The probability of reaching set score [i, j].
+    """
 
     # Helpful renamings
 
@@ -178,6 +234,19 @@ def prob_reach_set_score(i, j, hold_serve_prob_a, hold_serve_prob_b):
 
 def prob_win_match_a(win_serve_rally_prob_a, win_serve_rally_prob_b,
                      best_of_five=False):
+    """Calculates the probability that player a wins the match.
+
+    Args:
+        win_serve_rally_prob_a (np.array): The probability that player a wins
+            a rally on their own serve.
+        win_serve_rally_prob_b (np.array): The probability that player b wins
+            a rally on their own serve.
+        best_of_five (Bool): Whether or not the match is in best-of-five format.
+            If False, it is assumed to be best-of-three.
+
+    Returns:
+        np.array: The probability that player a wins the match.
+    """
 
     prob_a_win_set = prob_win_set_a(win_serve_rally_prob_a,
                                     win_serve_rally_prob_b)
