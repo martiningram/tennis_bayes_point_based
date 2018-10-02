@@ -1,7 +1,5 @@
 # Code for: "A point-based Bayesian hierarchical model for predicting the outcome of tennis matches"
 
-This is a repository containing code for the paper. 
-
 ## Requirements
 
 1. Python 2
