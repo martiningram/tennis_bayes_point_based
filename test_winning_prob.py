@@ -15,9 +15,11 @@ def test_set_score_probs_add_to_one():
     for poss_outcome in poss_outcomes:
 
         outcome_dict[poss_outcome] = prob_reach_set_score(
-            *poss_outcome, rally_prob_a, rally_prob_b)
+            poss_outcome[0], poss_outcome[1], rally_prob_a, rally_prob_b)
         outcome_dict[tuple(reversed(poss_outcome))] = prob_reach_set_score(
-            *reversed(poss_outcome), rally_prob_a, rally_prob_b)
+            tuple(reversed(poss_outcome))[0],
+            tuple(reversed(poss_outcome))[1],
+            rally_prob_a, rally_prob_b)
 
     summed = pd.Series(outcome_dict).sum()
 
