@@ -1,5 +1,3 @@
-
-
 def hold_serve_prob(rally_win_prob):
     """Calculates the probability of holding serve.
 
