@@ -36,7 +36,7 @@ def test_prob_win_set_a_consistent():
     for poss_outcome in poss_outcomes:
 
         outcome_dict[poss_outcome] = prob_reach_set_score(
-            *poss_outcome, rally_prob_a, rally_prob_b)
+            poss_outcome[0], poss_outcome[1], rally_prob_a, rally_prob_b)
 
     set_win_prob = prob_win_set_a(rally_prob_a, rally_prob_b)
 
