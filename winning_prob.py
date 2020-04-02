@@ -1,4 +1,3 @@
-import numpy as np
 
 
 def hold_serve_prob(rally_win_prob):
@@ -163,7 +162,7 @@ def prob_win_set_a(win_serve_rally_prob_a, win_serve_rally_prob_b):
     return total
 
 
-def prob_reach_set_score(i, j, hold_serve_prob_a, hold_serve_prob_b):
+def prob_reach_set_score(i, j, win_serve_rally_prob_a, win_serve_rally_prob_b):
     """The probability of reaching a given set score.
 
     Args:
@@ -178,37 +177,61 @@ def prob_reach_set_score(i, j, hold_serve_prob_a, hold_serve_prob_b):
         np.array: The probability of reaching set score [i, j].
     """
 
-    # Helpful renamings
+    assert (j <= 6 and i <= 6) or (i == 7 and j <= 6) or (i <= 6 and j == 7), \
+        'Please provide a valid set score!'
 
+    hold_serve_prob_a = hold_serve_prob(win_serve_rally_prob_a)
+    hold_serve_prob_b = hold_serve_prob(win_serve_rally_prob_b)
+
+    # Helpful renamings
     lose_serve_prob_a = 1 - hold_serve_prob_a
     lose_serve_prob_b = 1 - hold_serve_prob_b
 
     a_served_last = ((i - 1 + j) % 2 == 0)
 
     # Initial conditions
-
     if (i == 0 and j == 0):
         return 1
 
     if (i < 0 or j < 0):
         return 0
 
-    # Two possibilities
+    # We have the tiebreak case:
+    if i == 6 and j == 7:
+        return prob_reach_set_score(
+            i, j - 1, win_serve_rally_prob_a, win_serve_rally_prob_b) * (
+                1 - prob_win_tiebreak_a(win_serve_rally_prob_a,
+                                        win_serve_rally_prob_b))
 
+    elif i == 7 and j == 6:
+        return prob_reach_set_score(
+            i - 1, j, win_serve_rally_prob_a, win_serve_rally_prob_b) * (
+                prob_win_tiebreak_a(win_serve_rally_prob_a,
+                                    win_serve_rally_prob_b))
+
+    # We also have the 7-5 case:
+    if i == 7 and j == 5:
+        return prob_reach_set_score(i - 1, j, win_serve_rally_prob_a,
+                                    win_serve_rally_prob_b) * lose_serve_prob_b
+    elif i == 5 and j == 7:
+        return prob_reach_set_score(i, j - 1, win_serve_rally_prob_a,
+                                    win_serve_rally_prob_b) * hold_serve_prob_b
+
+    # Two possibilities
     if a_served_last:
 
         total = 0
 
         if (not (j == 6 and i <= 5)):
 
-            total += (prob_reach_set_score(i-1, j, hold_serve_prob_a,
-                                           hold_serve_prob_b) *
+            total += (prob_reach_set_score(i-1, j, win_serve_rally_prob_a,
+                                           win_serve_rally_prob_b) *
                       hold_serve_prob_a)
 
         if (not (i == 6 and j <= 5)):
 
-            total += (prob_reach_set_score(i, j-1, hold_serve_prob_a,
-                                           hold_serve_prob_b) *
+            total += (prob_reach_set_score(i, j-1, win_serve_rally_prob_a,
+                                           win_serve_rally_prob_b) *
                       lose_serve_prob_a)
 
         return total
@@ -219,14 +242,14 @@ def prob_reach_set_score(i, j, hold_serve_prob_a, hold_serve_prob_b):
 
         if (not (j == 6 and i <= 5)):
 
-            total += (prob_reach_set_score(i-1, j, hold_serve_prob_a,
-                                           hold_serve_prob_b) *
+            total += (prob_reach_set_score(i-1, j, win_serve_rally_prob_a,
+                                           win_serve_rally_prob_b) *
                       lose_serve_prob_b)
 
         if (not (i == 6 and j <= 5)):
 
-            total += (prob_reach_set_score(i, j-1, hold_serve_prob_a,
-                                           hold_serve_prob_b) *
+            total += (prob_reach_set_score(i, j-1, win_serve_rally_prob_a,
+                                           win_serve_rally_prob_b) *
                       hold_serve_prob_b)
 
         return total
@@ -241,8 +264,8 @@ def prob_win_match_a(win_serve_rally_prob_a, win_serve_rally_prob_b,
             a rally on their own serve.
         win_serve_rally_prob_b (np.array): The probability that player b wins
             a rally on their own serve.
-        best_of_five (Bool): Whether or not the match is in best-of-five format.
-            If False, it is assumed to be best-of-three.
+        best_of_five (Bool): Whether or not the match is in best-of-five
+            format. If False, it is assumed to be best-of-three.
 
     Returns:
         np.array: The probability that player a wins the match.
