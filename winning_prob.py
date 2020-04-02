@@ -30,7 +30,8 @@ def hold_serve_prob(rally_win_prob):
 
 def prob_reach_tiebreak_score(i, j, win_serve_rally_prob_a,
                               win_serve_rally_prob_b):
-    """The probability of reaching a given tiebreak score.
+    """The probability of reaching a given tiebreak score when player a serves
+    first.
 
     Args:
         i (int): Score for player a.
@@ -140,30 +141,25 @@ def prob_win_set_a(win_serve_rally_prob_a, win_serve_rally_prob_b):
         np.array: The probability that player a wins a set.
     """
 
-    hold_serve_prob_a = hold_serve_prob(win_serve_rally_prob_a)
-    hold_serve_prob_b = hold_serve_prob(win_serve_rally_prob_b)
-
-    lose_serve_prob_b = 1 - hold_serve_prob_b
-
     total = 0
 
     for j in range(5):
 
-        total += prob_reach_set_score(6, j, hold_serve_prob_a,
-                                      hold_serve_prob_b)
+        total += prob_reach_set_score(6, j, win_serve_rally_prob_a,
+                                      win_serve_rally_prob_b)
 
-    total += (prob_reach_set_score(6, 5, hold_serve_prob_a, hold_serve_prob_b)
-              * lose_serve_prob_b)
+    total += prob_reach_set_score(7, 5, win_serve_rally_prob_a,
+                                  win_serve_rally_prob_b)
 
-    total += (prob_reach_set_score(6, 6, hold_serve_prob_a, hold_serve_prob_b)
-              * prob_win_tiebreak_a(win_serve_rally_prob_a,
-                                    win_serve_rally_prob_b))
+    total += prob_reach_set_score(7, 6, win_serve_rally_prob_a,
+                                  win_serve_rally_prob_b)
 
     return total
 
 
 def prob_reach_set_score(i, j, win_serve_rally_prob_a, win_serve_rally_prob_b):
-    """The probability of reaching a given set score.
+    """The probability of reaching a given set score when player A serves
+    first.
 
     Args:
         i (int): Score for player a.
